@@ -115,7 +115,7 @@
                         <i class="fas fa-robot text-white text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-lg">AI Assistant</h3>
+                        <h3 class="font-bold text-lg">Trợ lý AI Unitel</h3>
                         <p class="text-blue-100 text-sm flex items-center">
                             <span class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
                             Sẵn sàng hỗ trợ
@@ -134,10 +134,12 @@
             <!-- Chat Messages -->
             <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-white chat-scroll min-h-0">
                 <!-- Welcome Message -->
-                <div class="flex items-start space-x-3 slide-up">                    <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                <div class="flex items-start space-x-3 slide-up">                    
+                    <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
                         <i class="fas fa-robot text-white text-xs"></i>
-                    </div>                    <div class="bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm max-w-[300px] border border-gray-100">
-                        <p class="text-gray-800 text-sm leading-relaxed">👋 Chào bạn! Tôi là AI Assistant. Tôi có thể giúp gì cho bạn hôm nay?</p>
+                    </div>                    
+                    <div class="bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm max-w-[300px] border border-gray-100">
+                        <p class="text-gray-800 text-sm leading-relaxed">👋 Chào bạn! Mình là trợ lý AI của Unitel. Tôi có thể giúp gì cho bạn hôm nay?</p>
                         <span class="text-xs text-gray-400 mt-2 block">Vừa xong</span>
                     </div>
                 </div>
@@ -218,7 +220,7 @@
 
             init() {
                 this.bindEvents();
-                this.showWelcomeMessage();
+                //this.showWelcomeMessage();
             }            
             
             bindEvents() {
@@ -329,7 +331,7 @@
             sendQuickAction(action) {
                 const actionMessages = {
                     'Hỗ trợ': 'Tôi cần hỗ trợ',
-                    'Sản phẩm': 'Tôi muốn tìm hiểu về sản phẩm',
+                    'Dịch vụ': 'Tôi muốn tìm hiểu về dịch vụ',
                     'Liên hệ': 'Tôi muốn liên hệ với bộ phận hỗ trợ'
                 };
                 
@@ -343,7 +345,7 @@
                 const userMessage = `
                     <div class="flex items-start space-x-3 justify-end slide-up">
                         <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-2xl rounded-tr-sm shadow-md max-w-[300px]">
-                            <p class="text-sm leading-relaxed">${this.escapeHtml(message)}</p>
+                            <p class="text-sm leading-relaxed break-words">${this.escapeHtml(message)}</p>
                             <span class="text-xs text-blue-100 mt-2 block">${time}</span>
                         </div>
                         <div class="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
@@ -358,21 +360,73 @@
 
             addBotMessage(message) {
                 const time = this.getCurrentTime();
+                let text = typeof message === 'string' ? message : (message?.text || '');
+                let lang = typeof message === 'object' ? message.lang : null;
+
+                // Tự động nhận diện ngôn ngữ nếu chưa có
+                function detectLang(text) {
+                    if (/[ກ-ໝ]/.test(text)) return "lo"; 
+                    if (/[a-zA-Z]/.test(text) && /you|how|help|please/i.test(text)) return "en";
+                    return "vi";
+                }
+                if (!lang || lang === "vi") {
+                    lang = detectLang(text);
+                }
+
+                // Kiểm tra có link đăng ký không, nếu có thì tách link ra khỏi nội dung chính
+                const hasLink = text.includes("https://look.tnet.vn/register-package");
+                const cleanText = text
+                    .replace("https://look.tnet.vn/register-package", "")
+                    .replace(/\[\]\(https:\/\/look\.tnet\.vn\/register-package\)/g, "")
+                    .replace(/\[.*?\]\(https:\/\/look\.tnet\.vn\/register-package\)/g, "")
+                    .trim();
+
+                // Format lại nội dung: xuống dòng, in đậm
+                const formattedText = cleanText
+                    .replace(/ - /g, "<br>")
+                    .replace(/\n/g, "<br>")
+                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+                // Tạo khối tin nhắn bot
                 const botMessage = `
                     <div class="flex items-start space-x-3 slide-up">
                         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
                             <i class="fas fa-robot text-white text-xs"></i>
                         </div>
                         <div class="bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm max-w-[300px] border border-gray-100">
-                            <p class="text-gray-800 text-sm leading-relaxed">${message}</p>
+                            <p class="text-gray-800 text-sm leading-relaxed break-words">${formattedText}</p>
                             <span class="text-xs text-gray-400 mt-2 block">${time}</span>
                         </div>
                     </div>
                 `;
-                
                 $('#chatContainer').append(botMessage);
+
+                // Nếu có link, thêm nút đăng ký bên dưới
+                if (hasLink) {
+                    const buttonLabels = {
+                        vi: "Đăng ký ngay",
+                        lo: "ລົງທະບຽນ",
+                        en: "Register now"
+                    };
+                    const label = buttonLabels[lang] || buttonLabels.vi;
+                    const buttonHtml = `
+                        <div class="flex items-start space-x-3 slide-up">
+                            <div class="w-8 h-8"></div>
+                            <div>
+                                <button onclick="window.open('https://look.tnet.vn/register-package', '_blank')"
+                                    class="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-pink-500 to-red-500 hover:from-red-500 hover:to-pink-500 text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                                    style="margin: 10px 0 5px 0;">
+                                    <i class="fas fa-paper-plane animate-pulse"></i>
+                                    <span>${label}</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    $('#chatContainer').append(buttonHtml);
+                }
+
                 this.scrollToBottom();
-                
+
                 if (!this.isOpen) {
                     this.messageCount++;
                     $('#notificationBadge').text(this.messageCount).removeClass('hidden');
@@ -389,24 +443,36 @@
             }
 
             simulateBotResponse(userMessage) {
-                const responses = [
-                    "Cảm ơn bạn đã liên hệ! Tôi sẽ giúp bạn ngay bây giờ. 😊",
-                    "Đây là thông tin bạn cần. Bạn có câu hỏi nào khác không?",
-                    "Tôi hiểu vấn đề của bạn. Để tôi tìm giải pháp tốt nhất.",
-                    "Rất vui được hỗ trợ bạn! Bạn còn cần thêm thông tin gì không?",
-                    "Đã ghi nhận yêu cầu của bạn. Tôi sẽ xử lý ngay lập tức."
-                ];
-                
-                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                
-                setTimeout(() => {
+                fetch('https://408b-14-231-188-210.ngrok-free.app/webhook/get', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "ngrok-skip-browser-warning": "true"
+                    },
+                    body: JSON.stringify({ message: userMessage }),
+                })
+                .then(async response => {
+                    const contentType = response.headers.get("content-type");
+                    const raw = await response.text();
                     this.hideTypingIndicator();
-                    this.addBotMessage(randomResponse);
-                    
+                    if (contentType && contentType.includes("application/json")) {
+                        const data = JSON.parse(raw);
+                        const reply = data[0]?.response || data[0]?.text || data[0]?.message || "Không có phản hồi từ máy chủ.";
+                        this.addBotMessage(this.escapeHtml(reply));
+                    } else {
+                        this.addBotMessage("Phản hồi không đúng định dạng JSON.");
+                    }
                     $('#messageInput').prop('disabled', false);
                     $('#sendButton').prop('disabled', false);
                     $('#messageInput').focus();
-                }, 1000 + Math.random() * 2000);
+                })
+                .catch(error => {
+                    this.hideTypingIndicator();
+                    this.addBotMessage("Đã xảy ra lỗi kết nối.");
+                    $('#messageInput').prop('disabled', false);
+                    $('#sendButton').prop('disabled', false);
+                    $('#messageInput').focus();
+                });
             }
 
             showWelcomeMessage() {
