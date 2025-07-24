@@ -241,32 +241,6 @@
             <!-- Chat Messages -->
             <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-white chat-scroll min-h-0">
                 <!-- Welcome Message -->
-                {{-- <div class="flex items-start space-x-3 slide-up">
-                    <div class="w-8 h-8 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                        <i class="fas fa-robot text-white text-xs"></i>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm max-w-[300px] border border-gray-100">
-                        <p class="text-gray-800 text-sm leading-relaxed">👋 Chào bạn! Mình là trợ lý AI giải đáp thắc mắc về chính sách dịch vụ của Unitel. Mình có thể giúp gì cho bạn hôm nay?</p>
-                        <span class="text-xs text-gray-400 mt-2">Vừa xong</span>
-                    </div>
-                </div>
-                <div class="flex items-start space-x-3 slide-up">
-                    <div class="w-8 h-8"></div>
-                    <div class="flex gap-2 mt-2">
-                        <button class="quick-action px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-xs font-semibold hover:bg-orange-200 transition-all duration-200">
-                            Di động
-                        </button>
-                        <button class="quick-action px-4 py-2 bg-green-100 text-green-700 rounded-full text-xs font-semibold hover:bg-green-200 transition-all duration-200">
-                            FTTH
-                        </button>
-                        <button class="quick-action px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold hover:bg-yellow-200 transition-all duration-200">
-                            Umoney
-                        </button>
-                        <button class="quick-action px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold hover:bg-purple-200 transition-all duration-200">
-                            LaoTV
-                        </button>
-                    </div>
-                </div> --}}
             </div>
             <!-- Typing Indicator (Hidden by default) -->
             <div id="typingIndicator" class="flex-shrink-0 px-4 pb-2 bg-gradient-to-b from-gray-50 to-white hidden">
@@ -379,7 +353,16 @@
                 this.threads = { faqs: [], tuVan: [], chinhSach: [] };
                 this.activeThread = 'faqs'; // Default thread
                 this.currentLang = this.detectLanguage();
+                this.sessionId = null;
                 this.init();
+            }
+
+            generateSessionId() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
             }
 
             detectLanguage() {
@@ -456,6 +439,9 @@
                 const arr = this.threads[this.activeThread];
 
                 if (arr.length === 0) {
+                    this.sessionId = this.generateSessionId();
+                    //console.log('New session created:', this.sessionId);
+                    
                     const welcomeMessage = this.getText('welcome');
                     c.append(`
                         <div class="flex items-start space-x-3 slide-up">
@@ -522,6 +508,11 @@
             sendMessage() {
                 const message = $('#messageInput').val().trim();
                 if (!message) return;
+
+                if (!this.sessionId) {
+                    this.sessionId = this.generateSessionId();
+                    //console.log('SessionId created during send:', this.sessionId);
+                }
                 this.threads[this.activeThread].push({ from: 'user', text: message });
                 this.addUserMessage(message, true);
                 $('#messageInput').val('').prop('disabled', true);
@@ -696,16 +687,24 @@
             }
 
             simulateBotResponse(userMessage) {
-                 const urlMap = {
+                const urlMap = {
                     faqs: 'https://408b-14-231-188-210.ngrok-free.app/webhook/faqs',
                     tuVan: 'https://408b-14-231-188-210.ngrok-free.app/webhook/qs',
                     chinhSach: 'https://408b-14-231-188-210.ngrok-free.app/webhook/policies'
                 };
                 const url = urlMap[this.activeThread];
+
+                const payload = {
+                    message: userMessage,
+                    sessionId: this.sessionId
+                };
+                //console.log('Sending to webhook:', url);
+                //console.log('Payload:', payload);
+
                 fetch(url, {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
-                    body: JSON.stringify({ message: userMessage }),
+                    body: JSON.stringify(payload),
                 })
                 .then(async response => {
                     const contentType = response.headers.get("content-type");
@@ -785,24 +784,6 @@
                 }
             }
         }
-
-        // function showCopyNotification() {
-        //     // Tạo thông báo tạm thời
-        //     const notification = $(`
-        //         <div class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[9999999] animate-pulse">
-        //             <i class="fas fa-check mr-2"></i>Đã copy!
-        //         </div>
-        //     `);
-            
-        //     $('body').append(notification);
-            
-        //     // Xóa thông báo sau 2 giây
-        //     setTimeout(() => {
-        //         notification.fadeOut(300, function() {
-        //             $(this).remove();
-        //         });
-        //     }, 2000);
-        // }
     </script>
 </body>
 </html>
